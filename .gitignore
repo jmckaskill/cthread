@@ -1,0 +1,7 @@
+/bin
+/obj
+*.o
+*.a
+/.vscode
+.ninja_deps
+.ninja_log
