@@ -1,13 +1,15 @@
+#prefix=x86_64-w64-mingw32-
+
 rule cc
  deps = gcc
  depfile = $out.d
- command = gcc -c -Wall -Werror -g -MD -MF $out.d -o $out $in
+ command = ${prefix}gcc -c -Wall -Werror -g -MD -MF $out.d -o $out $in
 
 rule as
- command = gcc -c -Wall -Werror -s -o $out $in
+ command = ${prefix}gcc -c -Wall -Werror -s -o $out $in
 
 rule exe
- command = gcc -o $out -g $in
+ command = ${prefix}gcc -o $out -g $in
 
 
 build obj/cthread.o: cc cthread.c
@@ -17,7 +19,7 @@ build obj/evloop.epoll.o: cc evloop.epoll.c
 build obj/heap.o: cc heap.c
 build obj/main.o: cc main.c
 
-build cthread: exe $
+build bin/cthread: exe $
  obj/cthread.o $
  obj/cthread.sysv64.o $
  obj/evloop.o $

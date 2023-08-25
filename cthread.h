@@ -26,6 +26,7 @@ void *cthread_call(cthread_t *tgt, void *data);
 void *cthread_tailcall(cthread_t *tgt, void *data);
 void cthread_exit(uintptr_t code);
 cthread_t *cthread_self(void);
+void cthread_set_dtor(cthread_t *t, void (*dtor)(void *), void *arg);
 
 typedef uintptr_t (*cthread_altstack_fn)(uintptr_t, uintptr_t);
 uintptr_t cthread_altstack(cthread_altstack_fn fn, uintptr_t arg0,

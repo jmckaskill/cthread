@@ -113,8 +113,9 @@ static inline void mark_dirty(struct evloop *e, struct evloop_poll *p)
 	}
 }
 
-void ev_watch(struct evwatch *w, evfd_t fd, enum ev_event ev, evwatch_fn fn)
+void ev_watch(struct evwatch *w, evfd_t fd, enum ev_event ev)
 {
+	assert(w->fn);
 	struct evloop *e = evloop_get();
 	int sts;
 	khint_t ii = kh_put(evloop_poll, e->pollers, fd, &sts);
@@ -125,7 +126,6 @@ void ev_watch(struct evwatch *w, evfd_t fd, enum ev_event ev, evwatch_fn fn)
 	}
 	struct evloop_poll *p = *pp;
 	w->poll_data = p;
-	w->fn = fn;
 	if (ev == EV_READ) {
 		assert(!p->rd);
 		p->rd = w;

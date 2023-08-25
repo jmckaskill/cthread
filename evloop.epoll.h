@@ -15,6 +15,10 @@ struct evloop {
 	char *sigstack;
 };
 
+struct evwatch_data {
+	struct evloop_poll *poll;
+};
+
 static inline uint32_t timeout(struct evloop *e, int msecs)
 {
 	return e->now + msecs;

@@ -2,29 +2,14 @@
 #include "mem.h"
 #include <stddef.h>
 #include <assert.h>
-#include <pthread.h>
 #include <string.h>
 
-struct cthread_frame {
-	struct cthread_frame *prev; // previous frame pointer
-	void (*return_address)(void); // return address
-};
-
-struct cthread_caller {
-	void *stack;
-	struct cthread_frame frame;
-};
-
-struct cthread {
-	void *stack;
-	struct cthread_caller caller;
-	struct cthread_main *main;
-	cthread_t *yield_to;
-	cthread_t *exit_to;
-	void *exit_data;
-	uintptr_t exit_code;
-	bool finished;
-};
+#ifdef _WIN32
+#define _WIN32_WINNT 0x0600
+#include <windows.h>
+#else
+#include <pthread.h>
+#endif
 
 ////////////////////
 // assembly functions
@@ -36,23 +21,53 @@ void *cthread_asm_switch(void *udata, void *loadstack, void **psavestack,
 uintptr_t cthread_asm_altstack(uintptr_t arg0, uintptr_t arg1, void *pload_sp,
 			       cthread_altstack_fn fn);
 
-extern void __morestack(void) __attribute__((visibility("default")));
+extern void __morestack(void);
+
 /////////////////////
 // current thread pointer
 
-pthread_key_t g_cthread_key;
-pthread_once_t g_cthread_once = PTHREAD_ONCE_INIT;
+#ifdef _WIN32
+static DWORD g_cthread_key;
+static volatile long g_cthread_once = 0;
+static void do_init(void)
+{
+	g_cthread_key = TlsAlloc();
+	if (g_cthread_key == TLS_OUT_OF_INDEXES) {
+		abort();
+	}
+}
+void create_tls_key(void)
+{
+	if (InterlockedCompareExchange(&g_cthread_once, 1, 0) == 0) {
+		do_init();
+		InterlockedExchange(&g_cthread_once, 2);
+	} else {
+		while (g_cthread_once == 1) {
+			Sleep(0);
+		}
+	}
+}
 
+static inline void set_thread(cthread_t *c)
+{
+	TlsSetValue(g_cthread_key, c);
+}
+
+cthread_t *cthread_self(void)
+{
+	return TlsGetValue(g_cthread_key);
+}
+#else
+static pthread_key_t g_cthread_key;
+static pthread_once_t g_cthread_once = PTHREAD_ONCE_INIT;
 static void do_init(void)
 {
 	if (pthread_key_create(&g_cthread_key, NULL)) {
 		abort();
 	}
 }
-
-void cthread_main_init(struct cthread_main *m)
+static void create_tls_key(void)
 {
-	memset(m, 0, sizeof(*m));
 	pthread_once(&g_cthread_once, &do_init);
 }
 
@@ -64,6 +79,14 @@ static inline void set_thread(cthread_t *c)
 cthread_t *cthread_self(void)
 {
 	return pthread_getspecific(g_cthread_key);
+}
+
+#endif
+
+void cthread_main_init(struct cthread_main *m)
+{
+	memset(m, 0, sizeof(*m));
+	create_tls_key();
 }
 
 //////////////////////////

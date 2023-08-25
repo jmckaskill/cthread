@@ -21,8 +21,9 @@ static void timer_wakeup(struct evtimer *t)
 static void do_sleep(int msecs)
 {
 	struct cthread_timer ct;
+	ct.timer.fn = &timer_wakeup;
 	ct.thread = cthread_self();
-	ev_alarm(&ct.timer, ev_timeout(msecs), &timer_wakeup);
+	ev_alarm(&ct.timer, ev_timeout(msecs));
 	cthread_yield(NULL);
 }
 
